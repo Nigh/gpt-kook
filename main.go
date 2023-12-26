@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -11,12 +13,15 @@ import (
 	"github.com/lonelyevil/kook/log_adapter/plog"
 	"github.com/phuslu/log"
 	"github.com/spf13/viper"
+
+	openai "github.com/sashabaranov/go-openai"
 )
 
 var aiChannel string
 var botID string
 
 var localSession *kook.Session
+var aiClient *openai.Client
 
 func sendKCard(target string, content string) (resp *kook.MessageResp, err error) {
 	resp, err = localSession.MessageCreate((&kook.MessageCreate{
@@ -57,14 +62,16 @@ func sendMarkdownDirect(target string, content string) (mr *kook.MessageResp, er
 }
 
 func main() {
+	viper.SetDefault("gpttoken", "0")
 	viper.SetDefault("token", "0")
 	viper.SetDefault("aiChannel", "0")
+	viper.SetDefault("baseurl", openai.DefaultConfig("").BaseURL)
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig()
 	if err != nil {
-		panic(fmt.Errorf("Fatal error config file: %s \n", err))
+		panic(fmt.Errorf("fatal error config file: %s", err))
 	}
 	aiChannel = viper.Get("aiChannel").(string)
 
@@ -74,6 +81,8 @@ func main() {
 	}
 	token := viper.Get("token").(string)
 	fmt.Println("token=" + token)
+	gpttoken := viper.Get("gpttoken").(string)
+	fmt.Println("gpttoken=" + gpttoken)
 
 	s := kook.New(token, plog.NewLogger(&l))
 	me, _ := s.UserMe()
@@ -82,6 +91,10 @@ func main() {
 	s.AddHandler(markdownMessageHandler)
 	s.Open()
 	localSession = s
+
+	gptConfig := openai.DefaultConfig(gpttoken)
+	gptConfig.BaseURL = "https://openai.tecnico.cc/v1"
+	aiClient = openai.NewClientWithConfig(gptConfig)
 
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.")
@@ -97,9 +110,6 @@ func main() {
 	s.Close()
 }
 
-func statuHan(ctx *kook.BotJoinContext) {
-	fmt.Println("Bot Join:" + ctx.Extra.GuildID)
-}
 func markdownMessageHandler(ctx *kook.KmarkdownMessageContext) {
 	if ctx.Extra.Author.Bot {
 		return
@@ -126,5 +136,27 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		return resp.MsgID
 	}
 
-	reply("非常抱歉。YUI 当前正在维护，请等待 YUI 维护结束。")
+	words := strings.TrimSpace(ctxCommon.Content)
+	if len(words) > 0 {
+		resp, err := aiClient.CreateChatCompletion(
+			context.Background(),
+			openai.ChatCompletionRequest{
+				Model: openai.GPT3Dot5Turbo,
+				Messages: []openai.ChatCompletionMessage{
+					{
+						Role:    openai.ChatMessageRoleUser,
+						Content: words,
+					},
+				},
+			},
+		)
+		if err != nil {
+			fmt.Printf("ChatCompletion error: %v\n", err)
+			reply("GPT response Error...")
+			return
+		}
+
+		fmt.Printf("GPT: %s\n", resp.Choices[0].Message.Content)
+		reply(resp.Choices[0].Message.Content)
+	}
 }

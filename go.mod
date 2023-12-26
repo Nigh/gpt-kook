@@ -6,6 +6,7 @@ require (
 	github.com/lonelyevil/kook v0.0.33
 	github.com/lonelyevil/kook/log_adapter/plog v0.0.34
 	github.com/phuslu/log v1.0.88
+	github.com/sashabaranov/go-openai v1.17.9
 	github.com/spf13/viper v1.18.2
 )
 
