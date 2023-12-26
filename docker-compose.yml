@@ -1,0 +1,14 @@
+version: '3'
+
+networks:
+  openai:
+
+services:
+  gpt:
+    image: gpt-kook:dev
+    volumes:
+      - ./config:/config
+      - /etc/ssl/certs:/etc/ssl/certs
+    restart: unless-stopped
+    networks:
+      - openai

@@ -68,7 +68,7 @@ func main() {
 	viper.SetDefault("baseurl", openai.DefaultConfig("").BaseURL)
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("/config")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %s", err))
