@@ -128,18 +128,29 @@ func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 
 // 连续对话支持
 var chatHistory []openai.ChatCompletionMessage
+var character openai.ChatCompletionMessage
+
+func historyClear(reason string) {
+	chatHistory = []openai.ChatCompletionMessage{}
+	character.Content = ""
+	sendMarkdown(aiChannel, reason)
+}
 
 func talk2GPT(words string, role string, tokenLimit int) (string, int, int) {
 	chatHistory = append(chatHistory, openai.ChatCompletionMessage{
 		Role:    role,
 		Content: words,
 	})
+	msg := chatHistory
+	if len(character.Content) > 0 {
+		msg = append([]openai.ChatCompletionMessage{character}, chatHistory...)
+	}
 	resp, err := aiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
 			MaxTokens: tokenLimit,
 			Model:     openai.GPT3Dot5Turbo,
-			Messages:  chatHistory,
+			Messages:  msg,
 		},
 	)
 	if err != nil {
@@ -147,6 +158,9 @@ func talk2GPT(words string, role string, tokenLimit int) (string, int, int) {
 		return "", 0, 0
 	}
 	chatHistory = append(chatHistory, resp.Choices[0].Message)
+	for len(chatHistory) > 16 {
+		chatHistory = chatHistory[1:]
+	}
 	fmt.Printf("GPT: %s\n", resp.Choices[0].Message.Content)
 	return resp.Choices[0].Message.Content, resp.Usage.PromptTokens, resp.Usage.CompletionTokens
 }
@@ -192,8 +206,7 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		rst := regexp.MustCompile(`重置对话.*`)
 		if rst.MatchString(words) {
 			if len(chatHistory) > 0 {
-				chatHistory = []openai.ChatCompletionMessage{}
-				reply("对话已重置。继续聊天开启新的对话。")
+				historyClear("对话已重置。继续聊天开启新的对话。")
 			} else {
 				reply("没有对话可以重置。请问有其他可以帮助您的吗？")
 			}
@@ -205,12 +218,16 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 			role = openai.ChatMessageRoleSystem
 			tokenLimit = 256
 		}
+		if role == openai.ChatMessageRoleSystem {
+			character = openai.ChatCompletionMessage{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: words,
+			}
+			reply("收到调教指令，最后一次调教设置将会持续保留并置于对话记忆的最开始处。直到对话重置。")
+		}
 		ans, tokenIn, tokenOut := talk2GPT(words, role, tokenLimit)
 		if len(ans) > 0 {
 			reply(ans + "\n`token:" + strconv.Itoa(tokenIn) + "," + strconv.Itoa(tokenOut) + "`")
-			for len(chatHistory) > 16 {
-				chatHistory = chatHistory[1:]
-			}
 		}
 	}
 }
