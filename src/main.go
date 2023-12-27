@@ -113,7 +113,11 @@ func markdownMessageHandler(ctx *kook.KmarkdownMessageContext) {
 
 func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 	reply := func(words string) string {
-		resp, _ := sendMarkdownDirect(ctxCommon.AuthorID, words)
+		resp, err := sendMarkdownDirect(ctxCommon.AuthorID, words)
+		if err != nil {
+			fmt.Println("[ERROR]while trying to send Markdown:", words)
+			return ""
+		}
 		return resp.MsgID
 	}
 	reply("（小声）对不起，我们工作时间不允许私聊的哦。")
