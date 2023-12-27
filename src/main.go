@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -87,6 +89,7 @@ func main() {
 
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.")
+	go continueChatTimer()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -123,6 +126,62 @@ func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 	reply("（小声）对不起，我们工作时间不允许私聊的哦。")
 }
 
+// 连续对话支持
+var chatHistory []openai.ChatCompletionMessage
+
+func talk2GPT(words string, role string) (string, int, int) {
+	chatHistory = append(chatHistory, openai.ChatCompletionMessage{
+		Role:    role,
+		Content: words,
+	})
+	resp, err := aiClient.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model:    openai.GPT3Dot5Turbo,
+			Messages: chatHistory,
+		},
+	)
+	if err != nil {
+		fmt.Printf("ChatCompletion error: %v\n", err)
+		return "", 0, 0
+	}
+	chatHistory = append(chatHistory, resp.Choices[0].Message)
+	fmt.Printf("GPT: %s\n", resp.Choices[0].Message.Content)
+	return resp.Choices[0].Message.Content, resp.Usage.PromptTokens, resp.Usage.CompletionTokens
+}
+
+var chatContinueSignal chan struct{}
+
+func chatContinue() {
+	go func() {
+		chatContinueSignal <- struct{}{}
+	}()
+}
+
+func continueChatTimer() {
+	var timeout int = 30
+	chatContinueSignal = make(chan struct{}, 1)
+	for {
+		select {
+		case <-chatContinueSignal:
+			timeout = 30
+			return
+		case <-time.After(time.Duration(10 * time.Second)):
+			if timeout > 0 {
+				timeout -= 1
+				if timeout == 0 {
+					if len(chatHistory) > 0 {
+						timeout = 30
+						chatHistory = []openai.ChatCompletionMessage{}
+						sendMarkdown(aiChannel, "连续对话已超时结束。继续聊天开启新的对话。")
+					}
+				}
+			}
+			return
+		}
+	}
+}
+
 func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	reply := func(words string) string {
 		resp, err := sendMarkdown(ctxCommon.TargetID, words)
@@ -132,28 +191,31 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		}
 		return resp.MsgID
 	}
-
+	chatContinue()
 	words := strings.TrimSpace(ctxCommon.Content)
 	if len(words) > 0 {
-		resp, err := aiClient.CreateChatCompletion(
-			context.Background(),
-			openai.ChatCompletionRequest{
-				Model: openai.GPT3Dot5Turbo,
-				Messages: []openai.ChatCompletionMessage{
-					{
-						Role:    openai.ChatMessageRoleUser,
-						Content: words,
-					},
-				},
-			},
-		)
-		if err != nil {
-			fmt.Printf("ChatCompletion error: %v\n", err)
-			reply("GPT response Error...")
+		role := openai.ChatMessageRoleUser
+		rst := regexp.MustCompile(`重置对话.*`)
+		if rst.MatchString(words) {
+			if len(chatHistory) > 0 {
+				chatHistory = []openai.ChatCompletionMessage{}
+				reply("对话已重置。继续聊天开启新的对话。")
+			} else {
+				reply("没有对话可以重置。请问有其他可以帮助您的吗？")
+			}
 			return
 		}
-
-		fmt.Printf("GPT: %s\n", resp.Choices[0].Message.Content)
-		reply(resp.Choices[0].Message.Content)
+		cmd := regexp.MustCompile(`调教\s*(.*)`)
+		if cmd.MatchString(words) {
+			words = cmd.ReplaceAllString(words, "$1")
+			role = openai.ChatMessageRoleSystem
+		}
+		ans, tokenIn, tokenOut := talk2GPT(words, role)
+		if len(ans) > 0 {
+			reply(ans + "\n`token:" + strconv.Itoa(tokenIn) + "," + strconv.Itoa(tokenOut) + "`")
+			for len(chatHistory) > 16 {
+				chatHistory = chatHistory[1:]
+			}
+		}
 	}
 }
