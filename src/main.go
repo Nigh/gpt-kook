@@ -19,23 +19,10 @@ import (
 
 var aiChannel string
 var botID string
+var baseurl string
 
 var localSession *kook.Session
 var aiClient *openai.Client
-
-func sendKCard(target string, content string) (resp *kook.MessageResp, err error) {
-	resp, err = localSession.MessageCreate((&kook.MessageCreate{
-		MessageCreateBase: kook.MessageCreateBase{
-			Type:     kook.MessageTypeCard,
-			TargetID: target,
-			Content:  content,
-		},
-	}))
-	if err != nil {
-		fmt.Println("[ERROR]while trying to send KCard:", content)
-	}
-	return
-}
 
 func sendMarkdown(target string, content string) (resp *kook.MessageResp, err error) {
 	resp, err = localSession.MessageCreate((&kook.MessageCreate{
@@ -68,7 +55,7 @@ func main() {
 	viper.SetDefault("baseurl", openai.DefaultConfig("").BaseURL)
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
+	viper.AddConfigPath("/config")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %s", err))
@@ -83,6 +70,8 @@ func main() {
 	fmt.Println("token=" + token)
 	gpttoken := viper.Get("gpttoken").(string)
 	fmt.Println("gpttoken=" + gpttoken)
+	baseurl = viper.Get("baseurl").(string)
+	fmt.Println("baseurl=" + baseurl)
 
 	s := kook.New(token, plog.NewLogger(&l))
 	me, _ := s.UserMe()
@@ -93,7 +82,7 @@ func main() {
 	localSession = s
 
 	gptConfig := openai.DefaultConfig(gpttoken)
-	gptConfig.BaseURL = "https://openai.tecnico.cc/v1"
+	gptConfig.BaseURL = baseurl
 	aiClient = openai.NewClientWithConfig(gptConfig)
 
 	// Wait here until CTRL-C or other term signal is received.
@@ -124,7 +113,11 @@ func markdownMessageHandler(ctx *kook.KmarkdownMessageContext) {
 
 func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 	reply := func(words string) string {
-		resp, _ := sendMarkdownDirect(ctxCommon.AuthorID, words)
+		resp, err := sendMarkdownDirect(ctxCommon.AuthorID, words)
+		if err != nil {
+			fmt.Println("[ERROR]while trying to send Markdown:", words)
+			return ""
+		}
 		return resp.MsgID
 	}
 	reply("（小声）对不起，我们工作时间不允许私聊的哦。")
@@ -132,7 +125,11 @@ func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 
 func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	reply := func(words string) string {
-		resp, _ := sendMarkdown(ctxCommon.TargetID, words)
+		resp, err := sendMarkdown(ctxCommon.TargetID, words)
+		if err != nil {
+			fmt.Println("[ERROR]while trying to send Markdown:", words)
+			return ""
+		}
 		return resp.MsgID
 	}
 
