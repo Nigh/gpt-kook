@@ -129,7 +129,7 @@ func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 // 连续对话支持
 var chatHistory []openai.ChatCompletionMessage
 
-func talk2GPT(words string, role string) (string, int, int) {
+func talk2GPT(words string, role string, tokenLimit int) (string, int, int) {
 	chatHistory = append(chatHistory, openai.ChatCompletionMessage{
 		Role:    role,
 		Content: words,
@@ -137,8 +137,9 @@ func talk2GPT(words string, role string) (string, int, int) {
 	resp, err := aiClient.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
-			Messages: chatHistory,
+			MaxTokens: tokenLimit,
+			Model:     openai.GPT3Dot5Turbo,
+			Messages:  chatHistory,
 		},
 	)
 	if err != nil {
@@ -195,6 +196,7 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	words := strings.TrimSpace(ctxCommon.Content)
 	if len(words) > 0 {
 		role := openai.ChatMessageRoleUser
+		tokenLimit := 512
 		rst := regexp.MustCompile(`重置对话.*`)
 		if rst.MatchString(words) {
 			if len(chatHistory) > 0 {
@@ -209,8 +211,9 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		if cmd.MatchString(words) {
 			words = cmd.ReplaceAllString(words, "$1")
 			role = openai.ChatMessageRoleSystem
+			tokenLimit = 256
 		}
-		ans, tokenIn, tokenOut := talk2GPT(words, role)
+		ans, tokenIn, tokenOut := talk2GPT(words, role, tokenLimit)
 		if len(ans) > 0 {
 			reply(ans + "\n`token:" + strconv.Itoa(tokenIn) + "," + strconv.Itoa(tokenOut) + "`")
 			for len(chatHistory) > 16 {
