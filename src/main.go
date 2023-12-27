@@ -22,6 +22,7 @@ import (
 var aiChannel string
 var botID string
 var baseurl string
+var tokenLimiter int
 
 var localSession *kook.Session
 var aiClient *openai.Client
@@ -51,6 +52,7 @@ func sendMarkdownDirect(target string, content string) (mr *kook.MessageResp, er
 }
 
 func main() {
+	viper.SetDefault("gpttokenmax", 512)
 	viper.SetDefault("gpttoken", "0")
 	viper.SetDefault("token", "0")
 	viper.SetDefault("aiChannel", "0")
@@ -72,6 +74,8 @@ func main() {
 	fmt.Println("token=" + token)
 	gpttoken := viper.Get("gpttoken").(string)
 	fmt.Println("gpttoken=" + gpttoken)
+	tokenLimiter = viper.Get("gpttokenmax").(int)
+	fmt.Println("gpttokenmax=" + strconv.Itoa(tokenLimiter))
 	baseurl = viper.Get("baseurl").(string)
 	fmt.Println("baseurl=" + baseurl)
 
@@ -202,7 +206,7 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	words := strings.TrimSpace(ctxCommon.Content)
 	if len(words) > 0 {
 		role := openai.ChatMessageRoleUser
-		tokenLimit := 512
+		tokenLimit := tokenLimiter
 		rst := regexp.MustCompile(`重置对话.*`)
 		if rst.MatchString(words) {
 			if len(chatHistory) > 0 {
@@ -216,7 +220,7 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		if cmd.MatchString(words) {
 			words = cmd.ReplaceAllString(words, "$1")
 			role = openai.ChatMessageRoleSystem
-			tokenLimit = 256
+			tokenLimit = tokenLimiter / 2
 		}
 		if role == openai.ChatMessageRoleSystem {
 			character = openai.ChatCompletionMessage{
