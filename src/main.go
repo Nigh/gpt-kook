@@ -160,25 +160,17 @@ func chatContinue() {
 }
 
 func continueChatTimer() {
-	var timeout int = 30
 	chatContinueSignal = make(chan struct{}, 1)
+
+	timer := time.NewTimer(300 * time.Second)
 	for {
 		select {
 		case <-chatContinueSignal:
-			timeout = 30
-			return
-		case <-time.After(time.Duration(10 * time.Second)):
-			if timeout > 0 {
-				timeout -= 1
-				if timeout == 0 {
-					if len(chatHistory) > 0 {
-						timeout = 30
-						chatHistory = []openai.ChatCompletionMessage{}
-						sendMarkdown(aiChannel, "连续对话已超时结束。继续聊天开启新的对话。")
-					}
-				}
+			timer.Reset(300 * time.Second)
+		case <-timer.C:
+			if len(chatHistory) > 0 {
+				historyClear("连续对话已超时结束。继续聊天开启新的对话。")
 			}
-			return
 		}
 	}
 }
