@@ -186,7 +186,7 @@ func continueChatTimer() {
 		case <-chatContinueSignal:
 			timer.Reset(300 * time.Second)
 		case <-timer.C:
-			if len(chatHistory) > 0 {
+			if len(chatHistory) > 0 || len(character.Content) > 0 {
 				historyClear("连续对话已超时结束。继续聊天开启新的对话。")
 			}
 		}
@@ -227,7 +227,8 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 				Role:    openai.ChatMessageRoleSystem,
 				Content: words,
 			}
-			reply("收到调教指令，最后一次调教设置将会持续保留并置于对话记忆的最开始处。直到对话重置。")
+			reply("调教指令已保存，最后一次调教设置将会持续保留并置于对话记忆的最开始处。直到对话重置。")
+			return
 		}
 		ans, tokenIn, tokenOut := talk2GPT(words, role, tokenLimit)
 		if len(ans) > 0 {
