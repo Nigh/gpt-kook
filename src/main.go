@@ -74,7 +74,7 @@ func main() {
 	fmt.Println("token=" + token)
 	gpttoken := viper.Get("gpttoken").(string)
 	fmt.Println("gpttoken=" + gpttoken)
-	tokenLimiter = viper.Get("gpttokenmax").(int)
+	tokenLimiter = viper.GetInt("gpttokenmax")
 	fmt.Println("gpttokenmax=" + strconv.Itoa(tokenLimiter))
 	baseurl = viper.Get("baseurl").(string)
 	fmt.Println("baseurl=" + baseurl)
