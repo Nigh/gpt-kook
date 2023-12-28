@@ -64,7 +64,7 @@ func main() {
 	viper.SetDefault("baseurl", openai.DefaultConfig("").BaseURL)
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	viper.AddConfigPath("/config")
+	viper.AddConfigPath("../")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %s", err))
@@ -120,9 +120,9 @@ func markdownMessageHandler(ctx *kook.KmarkdownMessageContext) {
 	}
 	switch ctx.Common.TargetID {
 	case botID:
-		directMessageHandler(ctx.Common)
+		go directMessageHandler(ctx.Common)
 	case aiChannel:
-		commonChanHandler(ctx.Common)
+		go commonChanHandler(ctx.Common)
 	}
 }
 
