@@ -4,6 +4,8 @@ github.com/Nigh/openai-ezgo v0.0.0-20231228162858-17612845cc62 h1:krD8rOfqbowzNM
 github.com/Nigh/openai-ezgo v0.0.0-20231228162858-17612845cc62/go.mod h1:3icxMiO/PZmCiRLMvvWVWYVMHZpGOC2IL3mtu/uha8c=
 github.com/Nigh/openai-ezgo v0.0.0-20231228164041-d6b7bc0dd51e h1:O6bnoe/fS1DuVxeU+OdBq03W7kzj9v8gBFRu411A+ZA=
 github.com/Nigh/openai-ezgo v0.0.0-20231228164041-d6b7bc0dd51e/go.mod h1:3icxMiO/PZmCiRLMvvWVWYVMHZpGOC2IL3mtu/uha8c=
+github.com/Nigh/openai-ezgo v0.0.0-20231228165348-7c3dc3fa74a4 h1:mqyJRM0UfazVKSOU2No69iAHI0/i3Z30pA7mYMWDmOc=
+github.com/Nigh/openai-ezgo v0.0.0-20231228165348-7c3dc3fa74a4/go.mod h1:3icxMiO/PZmCiRLMvvWVWYVMHZpGOC2IL3mtu/uha8c=
 github.com/bits-and-blooms/bitset v1.2.0/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/bits-and-blooms/bitset v1.2.2/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
 github.com/bits-and-blooms/bitset v1.10.0/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
