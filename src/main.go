@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/signal"
@@ -16,6 +15,7 @@ import (
 	"github.com/phuslu/log"
 	"github.com/spf13/viper"
 
+	openaiezgo "github.com/Nigh/openai-ezgo"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -87,13 +87,16 @@ func main() {
 	s.Open()
 	localSession = s
 
-	gptConfig := openai.DefaultConfig(gpttoken)
-	gptConfig.BaseURL = baseurl
-	aiClient = openai.NewClientWithConfig(gptConfig)
+	cfg := openaiezgo.DefaultConfig(gpttoken)
+	cfg.BaseURL = baseurl
+	cfg.MaxTokens = tokenLimiter
+	cfg.TimeoutCallback = func(from string, token int) {
+		sendMarkdown(from, "连续对话已超时结束。共消耗token:`"+strconv.Itoa(token)+"`")
+	}
+	openaiezgo.NewClientWithConfig(cfg)
 
 	// Wait here until CTRL-C or other term signal is received.
 	fmt.Println("Bot is now running.")
-	go continueChatTimer()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -130,69 +133,6 @@ func directMessageHandler(ctxCommon *kook.EventDataGeneral) {
 	reply("（小声）对不起，我们工作时间不允许私聊的哦。")
 }
 
-// 连续对话支持
-var chatHistory []openai.ChatCompletionMessage
-var character openai.ChatCompletionMessage
-
-func historyClear(reason string) {
-	chatHistory = []openai.ChatCompletionMessage{}
-	character.Content = ""
-	sendMarkdown(aiChannel, reason)
-}
-
-func talk2GPT(words string, role string, tokenLimit int) (string, int, int) {
-	chatHistory = append(chatHistory, openai.ChatCompletionMessage{
-		Role:    role,
-		Content: words,
-	})
-	msg := chatHistory
-	if len(character.Content) > 0 {
-		msg = append([]openai.ChatCompletionMessage{character}, chatHistory...)
-	}
-	resp, err := aiClient.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			MaxTokens: tokenLimit,
-			Model:     openai.GPT3Dot5Turbo,
-			Messages:  msg,
-		},
-	)
-	if err != nil {
-		fmt.Printf("ChatCompletion error: %v\n", err)
-		return "", 0, 0
-	}
-	chatHistory = append(chatHistory, resp.Choices[0].Message)
-	for len(chatHistory) > 16 {
-		chatHistory = chatHistory[1:]
-	}
-	fmt.Printf("GPT: %s\n", resp.Choices[0].Message.Content)
-	return resp.Choices[0].Message.Content, resp.Usage.PromptTokens, resp.Usage.CompletionTokens
-}
-
-var chatContinueSignal chan struct{}
-
-func chatContinue() {
-	go func() {
-		chatContinueSignal <- struct{}{}
-	}()
-}
-
-func continueChatTimer() {
-	chatContinueSignal = make(chan struct{}, 1)
-
-	timer := time.NewTimer(300 * time.Second)
-	for {
-		select {
-		case <-chatContinueSignal:
-			timer.Reset(300 * time.Second)
-		case <-timer.C:
-			if len(chatHistory) > 0 || len(character.Content) > 0 {
-				historyClear("连续对话已超时结束。继续聊天开启新的对话。")
-			}
-		}
-	}
-}
-
 func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	reply := func(words string) string {
 		resp, err := sendMarkdown(ctxCommon.TargetID, words)
@@ -202,37 +142,21 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 		}
 		return resp.MsgID
 	}
-	chatContinue()
 	words := strings.TrimSpace(ctxCommon.Content)
 	if len(words) > 0 {
-		role := openai.ChatMessageRoleUser
-		tokenLimit := tokenLimiter
 		rst := regexp.MustCompile(`重置对话.*`)
 		if rst.MatchString(words) {
-			if len(chatHistory) > 0 {
-				historyClear("对话已重置。继续聊天开启新的对话。")
-			} else {
-				reply("没有对话可以重置。请问有其他可以帮助您的吗？")
-			}
+			reply(openaiezgo.EndSpeech(ctxCommon.TargetID))
 			return
 		}
 		cmd := regexp.MustCompile(`调教\s*(.*)`)
 		if cmd.MatchString(words) {
-			words = cmd.ReplaceAllString(words, "$1")
-			role = openai.ChatMessageRoleSystem
-			tokenLimit = tokenLimiter / 2
-		}
-		if role == openai.ChatMessageRoleSystem {
-			character = openai.ChatCompletionMessage{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: words,
-			}
-			reply("调教指令已保存，最后一次调教设置将会持续保留并置于对话记忆的最开始处。直到对话重置。")
+			reply(openaiezgo.NewCharacterSet(ctxCommon.TargetID, cmd.FindStringSubmatch(words)[1]))
 			return
 		}
-		ans, tokenIn, tokenOut := talk2GPT(words, role, tokenLimit)
+		ans := openaiezgo.NewSpeech(ctxCommon.TargetID, words)
 		if len(ans) > 0 {
-			reply(ans + "\n`token:" + strconv.Itoa(tokenIn) + "," + strconv.Itoa(tokenOut) + "`")
+			reply(ans)
 		}
 	}
 }
