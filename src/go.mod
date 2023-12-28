@@ -1,8 +1,9 @@
 module xianii/gpt-kook
 
-go 1.19
+go 1.21.5
 
 require (
+	github.com/Nigh/openai-ezgo v0.0.0-20231228164041-d6b7bc0dd51e
 	github.com/lonelyevil/kook v0.0.33
 	github.com/lonelyevil/kook/log_adapter/plog v0.0.34
 	github.com/phuslu/log v1.0.88
@@ -11,7 +12,7 @@ require (
 )
 
 require (
-	github.com/bits-and-blooms/bitset v1.12.0 // indirect
+	github.com/bits-and-blooms/bitset v1.13.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.6.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
