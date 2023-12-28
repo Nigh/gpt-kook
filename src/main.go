@@ -25,7 +25,12 @@ var baseurl string
 var tokenLimiter int
 
 var localSession *kook.Session
-var aiClient *openai.Client
+
+var busyChannel map[string]bool
+
+func init() {
+	busyChannel = make(map[string]bool)
+}
 
 func sendMarkdown(target string, content string) (resp *kook.MessageResp, err error) {
 	resp, err = localSession.MessageCreate((&kook.MessageCreate{
@@ -144,6 +149,14 @@ func commonChanHandler(ctxCommon *kook.EventDataGeneral) {
 	}
 	words := strings.TrimSpace(ctxCommon.Content)
 	if len(words) > 0 {
+		if busyChannel[ctxCommon.TargetID] {
+			reply("正在思考，请勿打扰。")
+			return
+		}
+		busyChannel[ctxCommon.TargetID] = true
+		defer func() {
+			delete(busyChannel, ctxCommon.TargetID)
+		}()
 		rst := regexp.MustCompile(`重置对话.*`)
 		if rst.MatchString(words) {
 			reply(openaiezgo.EndSpeech(ctxCommon.TargetID))
