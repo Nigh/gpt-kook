@@ -69,8 +69,6 @@ func init() {
 	baseurl = viper.Get("baseurl").(string)
 	fmt.Println("baseurl=" + baseurl)
 
-	// channelSettings = viper.Get("channels").([]ChannelConfig)
-
 	if err := viper.UnmarshalKey("channels", &channelSettings); err != nil {
 		panic(err)
 	}
@@ -279,10 +277,13 @@ func commonChanHandler(ctx *kook.KmarkdownMessageContext) {
 		defer func() {
 			delete(busyChannel, ctxCommon.TargetID)
 		}()
+		ctx.Session.MessageAddReaction(ctxCommon.MsgID, "⌛️")
 		ans := openaiezgo.NewSpeech(ctxCommon.TargetID, words)
 		if len(ans) > 0 {
 			reply(ans)
 		}
+		ctx.Session.MessageDeleteReaction(ctxCommon.MsgID, "⌛️", botID)
+		ctx.Session.MessageAddReaction(ctxCommon.MsgID, "✅")
 	}
 
 	if channelSettings[validChannel].One2One {
