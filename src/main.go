@@ -90,6 +90,15 @@ func init() {
 	go serviceTimeoutTimer()
 }
 
+func chatStatuReset(target string) {
+	for idx := range channelSettings {
+		if channelSettings[idx].ID == target {
+			channelSettings[idx].currentServiceUser = ""
+			channelSettings[idx].currentServiceTime = 0
+		}
+	}
+}
+
 func serviceTimeoutTimer() {
 	timer := time.NewTicker(1 * time.Second)
 	for range timer.C {
@@ -99,8 +108,7 @@ func serviceTimeoutTimer() {
 				// 超时结束对话
 				if !busyChannel[v.ID] {
 					if channelSettings[k].currentServiceTime > channelSettings[k].MaxServiceTime {
-						channelSettings[k].currentServiceUser = ""
-						channelSettings[k].currentServiceTime = 0
+						chatStatuReset(v.ID)
 						_, err := sendMarkdown(v.ID, openaiezgo.EndSpeech(v.ID))
 						if err != nil {
 							fmt.Println("[ERROR]while trying to send Markdown")
@@ -153,14 +161,8 @@ func main() {
 	cfg.BaseURL = baseurl
 	cfg.MaxTokens = tokenLimiter
 	cfg.TimeoutCallback = func(from string, token int) {
+		chatStatuReset(from)
 		sendMarkdown(from, "连续对话已超时结束。共消耗token:`"+strconv.Itoa(token)+"`")
-		for idx := range channelSettings {
-			if channelSettings[idx].ID == from {
-				channelSettings[idx].currentServiceUser = ""
-				channelSettings[idx].currentServiceTime = 0
-				return
-			}
-		}
 	}
 	openaiezgo.NewClientWithConfig(cfg)
 
@@ -257,6 +259,7 @@ func commonChanHandler(ctx *kook.KmarkdownMessageContext) {
 		}
 		end := regexp.MustCompile(`结束对话.*`)
 		if end.MatchString(words) {
+			chatStatuReset(ctxCommon.TargetID)
 			reply(openaiezgo.EndSpeech(ctxCommon.TargetID))
 			return
 		}
