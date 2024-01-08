@@ -250,6 +250,7 @@ func commonChanHandler(ctx *kook.KmarkdownMessageContext) {
 		ret = 1
 		help := regexp.MustCompile(`帮助.*`)
 		if help.MatchString(words) {
+			ctx.Session.MessageAddReaction(ctxCommon.MsgID, "✅")
 			if channelSettings[validChannel].One2One {
 				reply(instruction(true))
 			} else {
@@ -259,12 +260,14 @@ func commonChanHandler(ctx *kook.KmarkdownMessageContext) {
 		}
 		end := regexp.MustCompile(`结束对话.*`)
 		if end.MatchString(words) {
+			ctx.Session.MessageAddReaction(ctxCommon.MsgID, "✅")
 			chatStatuReset(ctxCommon.TargetID)
 			reply(openaiezgo.EndSpeech(ctxCommon.TargetID))
 			return
 		}
 		cmd := regexp.MustCompile(`调教\s*(.*)`)
 		if cmd.MatchString(words) {
+			ctx.Session.MessageAddReaction(ctxCommon.MsgID, "✅")
 			reply(openaiezgo.NewCharacterSet(ctxCommon.TargetID, cmd.FindStringSubmatch(words)[1]))
 			return
 		}
