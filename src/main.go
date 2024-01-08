@@ -277,12 +277,12 @@ func commonChanHandler(ctx *kook.KmarkdownMessageContext) {
 		defer func() {
 			delete(busyChannel, ctxCommon.TargetID)
 		}()
-		ctx.Session.MessageAddReaction(ctxCommon.MsgID, "⌛️")
+		ctx.Session.MessageAddReaction(ctxCommon.MsgID, "🔸️")
 		ans := openaiezgo.NewSpeech(ctxCommon.TargetID, words)
 		if len(ans) > 0 {
 			reply(ans)
 		}
-		ctx.Session.MessageDeleteReaction(ctxCommon.MsgID, "⌛️", botID)
+		ctx.Session.MessageDeleteReaction(ctxCommon.MsgID, "🔸️", botID)
 		ctx.Session.MessageAddReaction(ctxCommon.MsgID, "✅")
 	}
 
