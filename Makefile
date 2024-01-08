@@ -3,7 +3,8 @@
 .PHONY: default run stop clean
 
 default:
-	docker build -t gpt-kook:dev .
+	docker build --rm -t gpt-kook:dev .
+	docker image prune --filter label=stage=builder -f
 
 run:
 	docker compose up -d

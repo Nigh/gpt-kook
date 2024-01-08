@@ -1,4 +1,5 @@
 FROM golang:alpine AS builder
+LABEL stage=builder
 WORKDIR $GOPATH/src/mypackage/myapp/
 COPY ./src/* ./
 ENV GOPROXY=https://goproxy.cn,direct
