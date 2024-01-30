@@ -1,6 +1,8 @@
 # 简易KOOK GPT聊天机器人
 
-![GitHub Repo stars](https://img.shields.io/github/stars/Nigh/gpt-kook?style=flat&color=ffaaaa) [![Software License](https://img.shields.io/github/license/Nigh/gpt-kook)](LICENSE) ![Docker](https://img.shields.io/badge/Build_with-Docker-ffaaaa)
+![GitHub Repo stars](https://img.shields.io/github/stars/Nigh/gpt-kook?style=flat&color=ffaaaa)
+[![Software License](https://img.shields.io/github/license/Nigh/gpt-kook)](LICENSE)
+![Docker](https://img.shields.io/badge/Build_with-Docker-ffaaaa)
 
 ## 部署
 
