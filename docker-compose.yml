@@ -9,6 +9,6 @@ services:
     volumes:
       - ./config:/config
       - /etc/ssl/certs:/etc/ssl/certs
-    restart: unless-stopped
+    restart: on-failure
     networks:
       - openai
