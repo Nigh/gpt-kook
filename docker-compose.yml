@@ -5,7 +5,7 @@ networks:
 
 services:
   gpt:
-    image: gpt-kook:dev
+    build: .
     volumes:
       - ./config:/config
       - /etc/ssl/certs:/etc/ssl/certs

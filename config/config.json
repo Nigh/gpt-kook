@@ -1,0 +1,34 @@
+{
+	// 你的kook机器人token
+	"token": "1/xxxxxx=/xxxxxxxxxxxxxxxxx==",
+	// 你的openai token
+	"gpttoken": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+	// 默认单次回复最大token数
+	"gpttokenmax": 1024,
+	// openai接口地址
+	"baseurl": "https://openai.aihey.cc/openai/v1",
+	// uptime kuma 推送地址，无则为空
+	"kumapushurl": "",
+	// 频道配置
+	"channels": [
+		{
+			// 频道ID
+			"id": "2963xxxxxxxxxxx426",
+			// 是否为单聊
+			"one2One": true,
+			// 单次最大服务时间（秒）
+			"maxServiceTime": 600,
+			// 单次回复最大token数
+			"maxToken": 768
+		},
+		{
+			"id": "9928xxxxxxxxxx0923",
+			"one2One": false
+		},
+		{
+			"id": "6959xxxxxxxxxx55419",
+			"one2One": true,
+			"maxServiceTime": 900
+		}
+	]
+}
