@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -16,6 +15,7 @@ import (
 	"github.com/phuslu/log"
 	"github.com/spf13/viper"
 
+	kuma "github.com/Nigh/kuma-push"
 	openaiezgo "github.com/Nigh/openai-ezgo"
 	openai "github.com/sashabaranov/go-openai"
 )
@@ -45,25 +45,8 @@ var gptToken string
 var botToken string
 
 func kumaPushInit() {
-	if gKumaPushURL != "" {
-		var responseTime int64 = 1
-		kumaPush := func() {
-			start := time.Now()
-			_, err := http.Get(gKumaPushURL + strconv.FormatInt(responseTime, 10))
-			if err == nil {
-				responseTime = time.Since(start).Milliseconds()
-			} else {
-				responseTime = 9999
-			}
-		}
-		kumaPush()
-		go func() {
-			minute := time.NewTicker(1 * time.Minute)
-			for range minute.C {
-				kumaPush()
-			}
-		}()
-	}
+	k := kuma.New(gKumaPushURL)
+	k.Start()
 }
 
 func init() {
@@ -213,7 +196,6 @@ func main() {
 	<-time.After(time.Second * time.Duration(1))
 	// Cleanly close down the KHL session.
 	s.Close()
-	// os.Exit(1)
 }
 
 func markdownMessageHandler(ctx *kook.KmarkdownMessageContext) {

@@ -3,6 +3,7 @@ module xianii/gpt-kook
 go 1.21.5
 
 require (
+	github.com/Nigh/kuma-push v0.1.0
 	github.com/Nigh/openai-ezgo v0.0.0-20240108091924-094a8c7b3f59
 	github.com/lonelyevil/kook v0.0.33
 	github.com/lonelyevil/kook/log_adapter/plog v0.0.34
